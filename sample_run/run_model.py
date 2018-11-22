@@ -56,12 +56,9 @@ def load_labels(label_file):
 
 
 if __name__ == "__main__":
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  classifier_data_dir = os.path.join(current_dir, 'testai_model')
-
   file_name = None
-  model_file = os.path.join(classifier_data_dir, 'saved_model.pb')
-  label_file = os.path.join(classifier_data_dir, 'saved_model.pbtxt')
+  model_dir = None
+
   input_height = 224
   input_width = 224
   input_mean = 0
@@ -71,15 +68,27 @@ if __name__ == "__main__":
   output_layer = "final_result"
 
   parser = argparse.ArgumentParser()
+  parser.add_argument("--model_dir", help="testai model directory")
   parser.add_argument("--image", help="image to be processed")
+
   args = parser.parse_args()
 
   if args.image:
     file_name = args.image
 
+  if args.model_dir:
+    model_dir = args.model_dir
+
+  if model_dir is None:
+    print ('ERROR! Need trained model dir. Please add --model_dir <path_to_dir>')
+    exit(1)
+
   if file_name is None:
     print ('ERROR! Need image to run prediction on. Please add --image <path_to_file>')
     exit(1)
+
+  model_file = os.path.join(model_dir, 'saved_model.pb')
+  label_file = os.path.join(model_dir, 'saved_model.pbtxt')
 
   graph = load_graph(model_file)
   t = read_tensor_from_image_file(
