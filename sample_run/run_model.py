@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
-
+from csv_writer import write
 
 def load_graph(model_file):
   graph = tf.Graph()
@@ -37,6 +37,7 @@ def read_tensor_from_image_file(file_name,
     image_reader = tf.image.decode_jpeg(
         file_reader, channels=3, name="jpeg_reader")
   image_reader = tf.image.grayscale_to_rgb(tf.image.rgb_to_grayscale(image_reader)) # Convert to grayscale
+  # image_reader = tf.image.rgb_to_grayscale(image_reader)
   float_caster = tf.cast(image_reader, tf.float32)
   dims_expander = tf.expand_dims(float_caster, 0)
   resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
@@ -56,6 +57,7 @@ def load_labels(label_file):
 
 
 if __name__ == "__main__":
+  session_name = None
   file_name = None
   model_dir = None
 
@@ -68,16 +70,24 @@ if __name__ == "__main__":
   output_layer = "final_result"
 
   parser = argparse.ArgumentParser()
+  parser.add_argument("--name", help="session name")
   parser.add_argument("--model_dir", help="testai model directory")
   parser.add_argument("--image", help="image to be processed")
 
   args = parser.parse_args()
+
+  if args.name:
+    session_name = args.name
 
   if args.image:
     file_name = args.image
 
   if args.model_dir:
     model_dir = args.model_dir
+
+  if session_name is None:
+    print ('ERROR! Need session name. Please add --name <session name>')
+    exit(1)
 
   if model_dir is None:
     print ('ERROR! Need trained model dir. Please add --model_dir <path_to_dir>')
@@ -108,13 +118,13 @@ if __name__ == "__main__":
         input_operation.outputs[0]: t
     })
   results = np.squeeze(results)
-
-  top_k = results.argsort()[-5:][::-1]
+  top_k = results.argsort()[::-1]
   labels = load_labels(label_file)
 
-  # Output the results
-  print('Top results:')
+  d = {'image': file_name,'model': model_dir,' negative': 0, 'add': 0, 'airplane': 0, 'alarm': 0, 'bag': 0, 'bluetooth': 0,
+    'brightness': 0, 'call': 0, 'car': 0, 'cart': 0, 'close': 0, 'text button': 0}
   for i in top_k:
     if results[i] < threshold:
-        break
-    print('    %s - %f' % (labels[i], results[i]))
+      break
+    d[labels[i]] = results[i]
+  write('%s.csv' % (session_name), d)
